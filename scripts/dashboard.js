@@ -10,13 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModal = document.getElementById("form-modal");
     const detailModal = document.getElementById("detail-modal");
     const deleteModal = document.getElementById("delete-modal");
-    const editModal = document.getElementById("edit-modal");
     const exportModal = document.getElementById("export-modal");
     const cardList = document.getElementById("card-list");
     const errorMessage = document.getElementById("form-error");
 
     let pendingDeleteId = null;
-    let editingServiceId = null;
+    let signatureCanvas = null;
+    let signatureCtx = null;
+    let isDrawing = false;
 
     function getTodayFormatted() {
         const today = new Date();
@@ -33,10 +34,77 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("field-date").value = getTodayFormatted();
         hideFormError();
         formModal.classList.add("active");
+        setTimeout(initSignatureCanvas, 50);
     }
 
     function closeFormModal() {
         formModal.classList.remove("active");
+    }
+
+    function initSignatureCanvas() {
+        signatureCanvas = document.getElementById("signature-canvas");
+        signatureCtx = signatureCanvas.getContext("2d");
+
+        signatureCanvas.width = signatureCanvas.offsetWidth;
+        signatureCanvas.height = signatureCanvas.offsetHeight;
+
+        signatureCtx.strokeStyle = "#1a1a2e";
+        signatureCtx.lineWidth = 2;
+        signatureCtx.lineCap = "round";
+        signatureCtx.lineJoin = "round";
+
+        function getPos(e) {
+            const rect = signatureCanvas.getBoundingClientRect();
+            const source = e.touches ? e.touches[0] : e;
+            return {
+                x: source.clientX - rect.left,
+                y: source.clientY - rect.top,
+            };
+        }
+
+        function startDrawing(e) {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            signatureCtx.beginPath();
+            signatureCtx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            signatureCtx.lineTo(pos.x, pos.y);
+            signatureCtx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        signatureCanvas.addEventListener("mousedown", startDrawing);
+        signatureCanvas.addEventListener("mousemove", draw);
+        signatureCanvas.addEventListener("mouseup", stopDrawing);
+        signatureCanvas.addEventListener("mouseleave", stopDrawing);
+        signatureCanvas.addEventListener("touchstart", startDrawing, { passive: false });
+        signatureCanvas.addEventListener("touchmove", draw, { passive: false });
+        signatureCanvas.addEventListener("touchend", stopDrawing);
+    }
+
+    function clearSignature() {
+        if (!signatureCtx) return;
+        signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    }
+
+    function isSignatureEmpty() {
+        if (!signatureCanvas) return true;
+        const pixels = signatureCtx.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height).data;
+        return !pixels.some((channel) => channel !== 0);
+    }
+
+    function getSignatureBase64() {
+        if (!signatureCanvas || isSignatureEmpty()) return "";
+        return signatureCanvas.toDataURL("image/png");
     }
 
     function hideFormError() {
@@ -93,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const map = {
             Parado: "status-stopped",
             Andamento: "status-progress",
-            Completo: "status-complete",
+            Concluido: "status-complete",
             Cancelado: "status-cancelled",
         };
         return map[status] || "status-stopped";
@@ -120,8 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
             '<span class="card-value">R$ ' + service.value + '</span>' +
             '<div class="card-actions">' +
             '<button class="btn-export-card" data-id="' + service.id + '">Exportar</button>' +
-            '<button class="btn-edit-card" data-id="' + service.id + '">Editar</button>' +
-            '<button class="btn-delete-card" data-id="' + service.id + '">Excluir</button>' +
+            (session.role === "admin" ? '<button class="btn-delete-card" data-id="' + service.id + '">Excluir</button>' : '') +
             '</div>' +
             '</div>';
 
@@ -132,12 +199,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const query = document.getElementById("search-input").value.trim().toLowerCase();
         const statusValue = document.getElementById("status-filter").value;
         const services = getServices().filter((s) => {
-        const matchesQuery = !query ||
-            s.name.toLowerCase().includes(query) ||
-            s.model.toLowerCase().includes(query) ||
-            s.color.toLowerCase().includes(query);
-        const matchesStatus = !statusValue || s.status === statusValue;
-        return matchesQuery && matchesStatus;
+            const matchesQuery = !query ||
+                s.name.toLowerCase().includes(query) ||
+                s.model.toLowerCase().includes(query) ||
+                s.color.toLowerCase().includes(query);
+            const matchesStatus = !statusValue || s.status === statusValue;
+            return matchesQuery && matchesStatus;
         });
 
         cardList.innerHTML = "";
@@ -157,9 +224,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!service) return;
 
         document.getElementById("detail-id").textContent = service.id;
-        document.getElementById("detail-status").textContent = service.status;
-        document.getElementById("detail-status").className =
-            "detail-status " + getStatusClass(service.status);
+        const statusSelect = document.getElementById("detail-status-select");
+        statusSelect.innerHTML =
+            '<option value="Parado">Parado</option>' +
+            '<option value="Andamento">Andamento</option>' +
+            '<option value="Concluido">Concluído</option>' +
+            '<option value="Cancelado">Cancelado</option>';
+        statusSelect.value = service.status;
+        statusSelect.disabled = session.role !== "admin";
+
+        statusSelect.onchange = () => {
+            updateService(service.id, { status: statusSelect.value });
+            renderCards();
+        };
         document.getElementById("detail-name").textContent = service.name;
         document.getElementById("detail-phone").textContent = service.phone;
         document.getElementById("detail-address").textContent = service.address;
@@ -172,7 +249,12 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detail-technical-report").textContent = service.technicalReport;
         document.getElementById("detail-observations").textContent = service.observations;
         document.getElementById("detail-photo").textContent = service.photo;
-        document.getElementById("detail-signature").textContent = service.signature || "—";
+        const signatureEl = document.getElementById("detail-signature");
+        if (service.signature) {
+            signatureEl.innerHTML = '<img src="' + service.signature + '" class="detail-signature-img" alt="Assinatura" />';
+        } else {
+            signatureEl.textContent = "—";
+        }
 
         detailModal.classList.add("active");
     }
@@ -191,52 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteModal.classList.remove("active");
     }
 
-    function openEditModal(id) {
-        const service = getServices().find((s) => s.id === id);
-        if (!service) return;
-
-        editingServiceId = id;
-
-        document.getElementById("edit-status").value = service.status;
-        document.getElementById("edit-name").value = service.name;
-        document.getElementById("edit-phone").value = service.phone;
-        document.getElementById("edit-address").value = service.address;
-        document.getElementById("edit-cpf").value = service.cpf;
-        document.getElementById("edit-model").value = service.model;
-        document.getElementById("edit-color").value = service.color;
-        document.getElementById("edit-imei").value = service.imei;
-        document.getElementById("edit-value").value = service.value;
-        document.getElementById("edit-date").value = service.date;
-        document.getElementById("edit-technical-report").value = service.technicalReport;
-        document.getElementById("edit-observations").value = service.observations;
-
-        document.getElementById("edit-error").classList.remove("visible");
-        editModal.classList.add("active");
-    }
-
-    function closeEditModal() {
-        editingServiceId = null;
-        editModal.classList.remove("active");
-    }
-
-    function validateEditForm() {
-        const fields = [
-            "edit-name", "edit-phone", "edit-address", "edit-cpf",
-            "edit-model", "edit-color", "edit-imei", "edit-value",
-            "edit-date", "edit-technical-report", "edit-observations",
-        ];
-
-        for (const id of fields) {
-            if (!document.getElementById(id).value.trim()) {
-                document.getElementById("edit-error").textContent = "Preencha todos os campos antes de continuar.";
-                document.getElementById("edit-error").classList.add("visible");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     function confirmDelete() {
         if (pendingDeleteId) {
             deleteService(pendingDeleteId);
@@ -249,6 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("btn-close-form").addEventListener("click", closeFormModal);
     document.getElementById("btn-cancel-form").addEventListener("click", closeFormModal);
+    document.getElementById("btn-clear-signature").addEventListener("click", clearSignature);
 
     document.getElementById("btn-close-detail").addEventListener("click", closeDetailModal);
 
@@ -256,34 +293,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-cancel-delete").addEventListener("click", closeDeleteModal);
     document.getElementById("btn-confirm-delete").addEventListener("click", confirmDelete);
 
-    document.getElementById("btn-close-edit").addEventListener("click", closeEditModal);
-    document.getElementById("btn-cancel-edit").addEventListener("click", closeEditModal);
     document.getElementById("btn-close-export").addEventListener("click", () => exportModal.classList.remove("active"));
     document.getElementById("btn-cancel-export").addEventListener("click", () => exportModal.classList.remove("active"));
     document.getElementById("btn-download-pdf").addEventListener("click", downloadPDF);
-
-    document.getElementById("edit-form").addEventListener("submit", (event) => {
-        event.preventDefault();
-        if (!validateEditForm()) return;
-
-        updateService(editingServiceId, {
-            status: document.getElementById("edit-status").value,
-            name: document.getElementById("edit-name").value.trim(),
-            phone: document.getElementById("edit-phone").value.trim(),
-            address: document.getElementById("edit-address").value.trim(),
-            cpf: document.getElementById("edit-cpf").value.trim(),
-            model: document.getElementById("edit-model").value.trim(),
-            color: document.getElementById("edit-color").value.trim(),
-            imei: document.getElementById("edit-imei").value.trim(),
-            value: document.getElementById("edit-value").value.trim(),
-            date: document.getElementById("edit-date").value,
-            technicalReport: document.getElementById("edit-technical-report").value.trim(),
-            observations: document.getElementById("edit-observations").value.trim(),
-        });
-
-        closeEditModal();
-        renderCards();
-    });
 
     document.getElementById("field-photo").addEventListener("change", (event) => {
         const file = event.target.files[0];
@@ -319,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
             date: document.getElementById("field-date").value,
             technicalReport: document.getElementById("field-technical-report").value.trim(),
             observations: document.getElementById("field-observations").value.trim(),
+            signature: getSignatureBase64(),
         });
 
         closeFormModal();
@@ -328,11 +341,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cardList.addEventListener("click", (event) => {
         if (event.target.closest(".btn-delete-card")) {
             openDeleteModal(event.target.closest(".btn-delete-card").dataset.id);
-            return;
-        }
-
-        if (event.target.closest(".btn-edit-card")) {
-            openEditModal(event.target.closest(".btn-edit-card").dataset.id);
             return;
         }
 

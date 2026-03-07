@@ -21,7 +21,7 @@ function createService(data) {
     phone: data.phone,
     address: data.address,
     cpf: data.cpf,
-    signature: "",
+    signature: data.signature || "",
     model: data.model,
     color: data.color,
     imei: data.imei,

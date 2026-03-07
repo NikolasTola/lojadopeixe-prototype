@@ -29,8 +29,8 @@
             <select id="status-filter">
                 <option value="">Todos os status</option>
                 <option value="Parado">Parado</option>
-                <option value="Andamento">Em andamento</option>
-                <option value="Completo">Concluído</option>
+                <option value="Andamento">Andamento</option>
+                <option value="Concluido">Concluído</option>
                 <option value="Cancelado">Cancelado</option>
             </select>
         </div>
@@ -95,11 +95,6 @@
                         <input type="date" id="field-date" />
                     </div>
 
-                    <div class="form-group">
-                        <label for="field-signature">Assinatura</label>
-                        <input type="text" id="field-signature" placeholder="Indisponível" disabled />
-                    </div>
-
                     <div class="form-group full-width">
                         <label for="field-technical-report">Laudo técnico</label>
                         <textarea id="field-technical-report" rows="3"
@@ -115,6 +110,12 @@
                         <label for="field-photo">Foto do aparelho</label>
                         <input type="file" id="field-photo" accept="image/*" />
                         <img id="photo-preview" class="photo-preview" alt="Pré-visualização" />
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Assinatura</label>
+                        <canvas id="signature-canvas" class="signature-canvas"></canvas>
+                        <button type="button" id="btn-clear-signature" class="btn-clear-signature">Limpar</button>
                     </div>
 
                     <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
@@ -144,7 +145,7 @@
                 </div>
                 <div class="detail-group">
                     <span class="detail-label">Status</span>
-                    <span id="detail-status" class="detail-value detail-status"></span>
+                    <select id="detail-status-select" class="select-status select-status-inline"></select>
                 </div>
                 <div class="detail-group">
                     <span class="detail-label">Nome</span>
@@ -182,10 +183,6 @@
                     <span class="detail-label">Data</span>
                     <span id="detail-date" class="detail-value"></span>
                 </div>
-                <div class="detail-group">
-                    <span class="detail-label">Assinatura</span>
-                    <span id="detail-signature" class="detail-value"></span>
-                </div>
                 <div class="detail-group full-width">
                     <span class="detail-label">Laudo técnico</span>
                     <span id="detail-technical-report" class="detail-value"></span>
@@ -197,6 +194,10 @@
                 <div class="detail-group full-width">
                     <span class="detail-label">Foto do aparelho</span>
                     <span id="detail-photo" class="detail-value"></span>
+                </div>
+                <div class="detail-group full-width">
+                    <span class="detail-label">Assinatura</span>
+                    <div id="detail-signature"></div>
                 </div>
             </div>
         </div>
@@ -214,99 +215,6 @@
                 <button id="btn-cancel-delete" class="btn-secondary">Cancelar</button>
                 <button id="btn-confirm-delete" class="btn-danger">Excluir</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Edit Modal -->
-    <div id="edit-modal" class="modal-overlay">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">Editar serviço</span>
-                <button id="btn-close-edit" class="btn-close-modal">&#x2715;</button>
-            </div>
-
-            <form id="edit-form" novalidate>
-                <div class="form-grid">
-
-                    <div class="form-group full-width">
-                        <label for="edit-status">Status</label>
-                        <select id="edit-status" class="select-status">
-                            <option value="Parado">Parado</option>
-                            <option value="Andamento">Em andamento</option>
-                            <option value="Completo">Concluído</option>
-                            <option value="Cancelado">Cancelado</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-name">Nome</label>
-                        <input type="text" id="edit-name" maxlength="64" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-phone">Telefone</label>
-                        <input type="text" id="edit-phone" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-address">Endereço</label>
-                        <input type="text" id="edit-address" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-cpf">CPF</label>
-                        <input type="text" id="edit-cpf" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-model">Modelo</label>
-                        <input type="text" id="edit-model" maxlength="100" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-color">Cor</label>
-                        <input type="text" id="edit-color" maxlength="64" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-imei">IMEI</label>
-                        <input type="text" id="edit-imei" maxlength="20" inputmode="numeric" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-value">Valor (R$)</label>
-                        <input type="text" id="edit-value" inputmode="decimal" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-date">Data</label>
-                        <input type="date" id="edit-date" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit-signature">Assinatura</label>
-                        <input type="text" id="edit-signature" placeholder="Indisponível" disabled />
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="edit-technical-report">Laudo técnico</label>
-                        <textarea id="edit-technical-report" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="edit-observations">Observações</label>
-                        <textarea id="edit-observations" rows="3"></textarea>
-                    </div>
-
-                    <p id="edit-error" class="form-error" role="alert" aria-live="polite"></p>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" id="btn-cancel-edit" class="btn-secondary">Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar</button>
-                </div>
-            </form>
         </div>
     </div>
 
