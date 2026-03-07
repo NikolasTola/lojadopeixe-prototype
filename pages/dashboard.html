@@ -24,6 +24,16 @@
         <div class="page-actions">
             <button id="btn-new-service" class="btn-primary">Criar nova nota</button>
         </div>
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Buscar por nome, modelo ou cor..." />
+            <select id="status-filter">
+                <option value="">Todos os status</option>
+                <option value="Parado">Parado</option>
+                <option value="Andamento">Em andamento</option>
+                <option value="Completo">Concluído</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+        </div>
         <div id="card-list"></div>
     </main>
 
@@ -300,8 +310,24 @@
         </div>
     </div>
 
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal-overlay">
+        <div class="modal modal-export">
+            <div class="modal-header">
+                <span class="modal-title">Pré-visualização</span>
+                <button id="btn-close-export" class="btn-close-modal">&#x2715;</button>
+            </div>
+            <div id="export-preview" class="export-preview"></div>
+            <div class="modal-footer">
+                <button id="btn-cancel-export" class="btn-secondary">Cancelar</button>
+                <button id="btn-download-pdf" class="btn-primary">Exportar PDF</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/services.js"></script>
+    <script src="../scripts/export.js"></script>
     <script src="../scripts/dashboard.js"></script>
 </body>
 

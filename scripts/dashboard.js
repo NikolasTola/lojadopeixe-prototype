@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const detailModal = document.getElementById("detail-modal");
     const deleteModal = document.getElementById("delete-modal");
     const editModal = document.getElementById("edit-modal");
+    const exportModal = document.getElementById("export-modal");
     const cardList = document.getElementById("card-list");
     const errorMessage = document.getElementById("form-error");
 
@@ -98,12 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return map[status] || "status-stopped";
     }
 
-    function formatDateDisplay(dateStr) {
-        if (!dateStr) return "";
-        const [year, month, day] = dateStr.split("-");
-        return day + "/" + month + "/" + year;
-    }
-
     function buildCard(service) {
         const card = document.createElement("div");
         card.className = "service-card";
@@ -124,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
             '<div class="card-bottom">' +
             '<span class="card-value">R$ ' + service.value + '</span>' +
             '<div class="card-actions">' +
+            '<button class="btn-export-card" data-id="' + service.id + '">Exportar</button>' +
             '<button class="btn-edit-card" data-id="' + service.id + '">Editar</button>' +
             '<button class="btn-delete-card" data-id="' + service.id + '">Excluir</button>' +
             '</div>' +
@@ -133,7 +129,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderCards() {
-        const services = getServices();
+        const query = document.getElementById("search-input").value.trim().toLowerCase();
+        const statusValue = document.getElementById("status-filter").value;
+        const services = getServices().filter((s) => {
+        const matchesQuery = !query ||
+            s.name.toLowerCase().includes(query) ||
+            s.model.toLowerCase().includes(query) ||
+            s.color.toLowerCase().includes(query);
+        const matchesStatus = !statusValue || s.status === statusValue;
+        return matchesQuery && matchesStatus;
+        });
+
         cardList.innerHTML = "";
 
         if (services.length === 0) {
@@ -252,6 +258,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("btn-close-edit").addEventListener("click", closeEditModal);
     document.getElementById("btn-cancel-edit").addEventListener("click", closeEditModal);
+    document.getElementById("btn-close-export").addEventListener("click", () => exportModal.classList.remove("active"));
+    document.getElementById("btn-cancel-export").addEventListener("click", () => exportModal.classList.remove("active"));
+    document.getElementById("btn-download-pdf").addEventListener("click", downloadPDF);
 
     document.getElementById("edit-form").addEventListener("submit", (event) => {
         event.preventDefault();
@@ -327,6 +336,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        if (event.target.closest(".btn-export-card")) {
+            generateServicePDF(event.target.closest(".btn-export-card").dataset.id);
+            return;
+        }
+
         const card = event.target.closest(".service-card");
         if (card) {
             openDetailModal(card.dataset.id);
@@ -337,6 +351,9 @@ document.addEventListener("DOMContentLoaded", () => {
         clearSession();
         window.location.replace("login.html");
     });
+
+    document.getElementById("search-input").addEventListener("input", renderCards);
+    document.getElementById("status-filter").addEventListener("change", renderCards);
 
     renderCards();
 });
