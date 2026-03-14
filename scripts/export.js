@@ -1,85 +1,135 @@
-function generateServicePDF(serviceId) {
-    const service = getServices().find((s) => s.id === serviceId);
-    if (!service) return;
+async function exportServicePDF(serviceId) {
+  const service = getServices().find((s) => s.id === serviceId);
+  if (!service) return;
 
-    const preview = document.getElementById("export-preview");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    preview.innerHTML =
-        '<div class="pdf-page">' +
-        '<div class="pdf-header">' +
-        '<span class="pdf-brand">Loja do Peixe</span>' +
-        '</div>' +
-        '<div class="pdf-section">' +
-        '<div class="pdf-row"><span class="pdf-label">Nome</span><span class="pdf-value">' + service.name + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Telefone</span><span class="pdf-value">' + service.phone + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Endereço</span><span class="pdf-value">' + service.address + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">CPF</span><span class="pdf-value">' + service.cpf + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Modelo</span><span class="pdf-value">' + service.model + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Cor</span><span class="pdf-value">' + service.color + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">IMEI</span><span class="pdf-value">' + service.imei + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Valor</span><span class="pdf-value">R$ ' + service.value + '</span></div>' +
-        '<div class="pdf-row"><span class="pdf-label">Data</span><span class="pdf-value">' + formatDateDisplay(service.date) + '</span></div>' +
-        '</div>' +
-        '<div class="pdf-section">' +
-        '<div class="pdf-row pdf-row-block"><span class="pdf-label">Laudo técnico</span><span class="pdf-value">' + service.technicalReport + '</span></div>' +
-        '<div class="pdf-row pdf-row-block"><span class="pdf-label">Observações</span><span class="pdf-value">' + service.observations + '</span></div>' +
-        '</div>' +
-        '<div class="pdf-signature-area">' +
-        (service.signature
-            ? '<img src="' + service.signature + '" class="pdf-signature-img" alt="Assinatura" />'
-            : '') +
-        '<div class="pdf-signature-line"></div>' +
-        '<span class="pdf-signature-label">Assinatura</span>' +
-        '</div>' +
-        '</div>';
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 20;
 
-    document.getElementById("export-modal").classList.add("active");
-}
+  const lineHeight = 7;
+  const sectionGap = 6;
 
-function downloadPDF() {
-    const page = document.querySelector(".pdf-page");
-    if (!page) return;
+  function drawHeader() {
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(26, 26, 46);
+    doc.text("Loja do Peixe", pageWidth / 2, y, { align: "center" });
+    y += 8;
+    doc.setDrawColor(26, 26, 46);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += sectionGap;
+  }
 
-    const originalParent = page.parentElement;
-    const printFrame = document.createElement("iframe");
+  function drawField(label, value) {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(107, 107, 138);
+    doc.text(label.toUpperCase(), margin, y);
 
-    printFrame.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;";
-    document.body.appendChild(printFrame);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(26, 26, 46);
 
-    const styles = `
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Nunito', sans-serif; background: #fff; color: #1a1a2e; }
-    .pdf-page { padding: 40px 48px; width: 210mm; min-height: 297mm; }
-    .pdf-header { text-align: center; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #1a1a2e; }
-    .pdf-brand { font-size: 26px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
-    .pdf-section { margin-bottom: 24px; border-bottom: 1px solid #e2e1f0; padding-bottom: 16px; }
-    .pdf-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted #e2e1f0; }
-    .pdf-row:last-child { border-bottom: none; }
-    .pdf-row-block { flex-direction: column; gap: 4px; }
-    .pdf-label { font-size: 12px; font-weight: 700; color: #6b6b8a; text-transform: uppercase; letter-spacing: 0.3px; }
-    .pdf-value { font-size: 13px; font-weight: 600; color: #1a1a2e; }
-    .pdf-signature-area { margin-top: 48px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .pdf-signature-img { max-width: 80%; max-height: 80px; display: block; margin: 0 auto 8px; }
-    .pdf-signature-line { width: 80%; height: 1px; background: #1a1a2e; }
-    .pdf-signature-label { font-size: 12px; font-weight: 700; color: #6b6b8a; text-transform: uppercase; letter-spacing: 0.3px; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-  `;
+    const lines = doc.splitTextToSize(String(value || "—"), contentWidth);
+    lines.forEach((line) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(line, margin, y + 5);
+      y += lineHeight;
+    });
 
-    const doc = printFrame.contentDocument;
-    doc.open();
-    doc.write("<!DOCTYPE html><html><head><style>" + styles + "</style></head><body>" + page.outerHTML + "</body></html>");
-    doc.close();
+    doc.setDrawColor(226, 225, 240);
+    doc.setLineWidth(0.2);
+    doc.line(margin, y + 1, pageWidth - margin, y + 1);
+    y += 5;
+  }
 
-    printFrame.onload = () => {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-        setTimeout(() => document.body.removeChild(printFrame), 1000);
-    };
-}
+  function drawSectionDivider() {
+    y += 2;
+    doc.setDrawColor(226, 225, 240);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += sectionGap;
+  }
 
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return "";
-    const [year, month, day] = dateStr.split("-");
-    return day + "/" + month + "/" + year;
+  drawHeader();
+
+  drawField("ID", service.id);
+  drawField("Status", service.status);
+  drawField("Data", formatDateDisplay(service.date));
+
+  drawSectionDivider();
+
+  drawField("Nome", service.name);
+  drawField("Telefone", service.phone || "—");
+  drawField("Endereço", service.address);
+  drawField("CPF", service.cpf);
+
+  drawSectionDivider();
+
+  drawField("Modelo", service.model);
+  drawField("Cor", service.color);
+  drawField("IMEI", service.imei || "—");
+  drawField("Valor", "R$ " + formatCurrency(service.value));
+
+  drawSectionDivider();
+
+  drawField("Laudo técnico", service.technicalReport);
+  drawField("Observações", service.observations || "—");
+
+  y += 4;
+
+  if (service.signature) {
+    if (y > 220) { doc.addPage(); y = 20; }
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(107, 107, 138);
+    doc.text("ASSINATURA", margin, y);
+    y += 6;
+    const sigWidth = contentWidth * 0.6;
+    const sigHeight = 25;
+    const sigX = (pageWidth - sigWidth) / 2;
+    doc.addImage(service.signature, "PNG", sigX, y, sigWidth, sigHeight);
+    y += sigHeight + 4;
+  } else {
+    y += 16;
+  }
+
+  doc.setDrawColor(26, 26, 46);
+  doc.setLineWidth(0.5);
+  const lineWidth = contentWidth * 0.6;
+  const lineX = (pageWidth - lineWidth) / 2;
+  doc.line(lineX, y, lineX + lineWidth, y);
+  y += 5;
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(107, 107, 138);
+  doc.text("ASSINATURA", pageWidth / 2, y, { align: "center" });
+
+  const fileName = "servico-" + service.id + ".pdf";
+  const pdfBlob = doc.output("blob");
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isMobile && navigator.share) {
+    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+    try {
+      await navigator.share({ files: [file], title: "Nota de Serviço - " + service.id });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        doc.save(fileName);
+      }
+    }
+  } else {
+    doc.save(fileName);
+  }
 }

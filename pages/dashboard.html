@@ -16,6 +16,7 @@
     <!-- Header -->
     <header class="header">
         <span id="header-username" class="header-username"></span>
+        <nav class="header-nav" id="header-nav"></nav>
         <button id="btn-logout" class="btn-logout">Sair</button>
     </header>
 
@@ -61,7 +62,7 @@
 
                     <div class="form-group">
                         <label for="field-address">Endereço</label>
-                        <input type="text" id="field-address" placeholder="Rua, Número" />
+                        <input type="text" id="field-address" maxlength="64" placeholder="Rua, Número" />
                     </div>
 
                     <div class="form-group">
@@ -71,7 +72,7 @@
 
                     <div class="form-group">
                         <label for="field-model">Modelo</label>
-                        <input type="text" id="field-model" maxlength="100" placeholder="Modelo do aparelho" />
+                        <input type="text" id="field-model" maxlength="32" placeholder="Modelo do aparelho" />
                     </div>
 
                     <div class="form-group">
@@ -97,13 +98,13 @@
 
                     <div class="form-group full-width">
                         <label for="field-technical-report">Laudo técnico</label>
-                        <textarea id="field-technical-report" rows="3"
-                            placeholder="Descreva o laudo técnico"></textarea>
+                        <textarea id="field-technical-report" rows="3" 
+                            maxlength="320" placeholder="Descreva o laudo técnico"></textarea>
                     </div>
 
                     <div class="form-group full-width">
                         <label for="field-observations">Observações</label>
-                        <textarea id="field-observations" rows="3" placeholder="Observações adicionais"></textarea>
+                        <textarea id="field-observations" rows="3" maxlength="320" placeholder="Observações adicionais"></textarea>
                     </div>
 
                     <div class="form-group full-width">
@@ -196,7 +197,7 @@
                     <span id="detail-photo" class="detail-value"></span>
                 </div>
                 <div class="detail-group full-width">
-                    <span class="detail-label">Assinatura</span>
+                    <span class="detail-label detail-label-centered">Assinatura</span>
                     <div id="detail-signature"></div>
                 </div>
             </div>
@@ -218,21 +219,7 @@
         </div>
     </div>
 
-    <!-- Export Modal -->
-    <div id="export-modal" class="modal-overlay">
-        <div class="modal modal-export">
-            <div class="modal-header">
-                <span class="modal-title">Pré-visualização</span>
-                <button id="btn-close-export" class="btn-close-modal">&#x2715;</button>
-            </div>
-            <div id="export-preview" class="export-preview"></div>
-            <div class="modal-footer">
-                <button id="btn-cancel-export" class="btn-secondary">Cancelar</button>
-                <button id="btn-download-pdf" class="btn-primary">Exportar PDF</button>
-            </div>
-        </div>
-    </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/services.js"></script>
     <script src="../scripts/export.js"></script>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usuários</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles/dashboard.css" />
+    <link rel="stylesheet" href="../styles/users.css" />
+  </head>
+  <body>
+    <header class="header">
+      <span id="header-username" class="header-username"></span>
+      <nav class="header-nav">
+        <a href="dashboard.html" class="header-link">Serviços</a>
+      </nav>
+      <button id="btn-logout" class="btn-logout">Sair</button>
+    </header>
+
+    <main class="main-content">
+      <div class="page-actions">
+        <button id="btn-new-user" class="btn-primary">Novo usuário</button>
+      </div>
+      <div id="user-list"></div>
+    </main>
+
+    <!-- New User Modal -->
+    <div id="user-form-modal" class="modal-overlay">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <span class="modal-title">Novo usuário</span>
+          <button id="btn-close-user-form" class="btn-close-modal">&#x2715;</button>
+        </div>
+        <form id="user-form" novalidate>
+          <div class="form-grid" style="grid-template-columns: 1fr;">
+            <div class="form-group">
+              <label for="user-name">Nome</label>
+              <input type="text" id="user-name" placeholder="Nome completo" maxlength="64" />
+            </div>
+            <div class="form-group">
+              <label for="user-login">Login</label>
+              <input type="text" id="user-login" placeholder="Login de acesso" maxlength="32" />
+            </div>
+            <div class="form-group">
+              <label for="user-role">Perfil</label>
+              <select id="user-role" class="select-status">
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <p id="user-form-error" class="form-error" role="alert" aria-live="polite"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="btn-cancel-user-form" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary">Criar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Password Created Modal -->
+    <div id="password-modal" class="modal-overlay">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <span class="modal-title">Usuário criado</span>
+          <button id="btn-close-password-modal" class="btn-close-modal">&#x2715;</button>
+        </div>
+        <p class="password-notice">Copie a senha gerada abaixo. Ela não será exibida novamente.</p>
+        <div class="password-display">
+          <span id="generated-password"></span>
+          <button id="btn-copy-password" class="btn-copy">Copiar</button>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-close-password-ok" class="btn-primary">Ok, entendi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Block Modal -->
+    <div id="block-modal" class="modal-overlay">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <span class="modal-title" id="block-modal-title">Bloquear usuário</span>
+          <button id="btn-close-block" class="btn-close-modal">&#x2715;</button>
+        </div>
+        <p id="block-modal-message" class="delete-message"></p>
+        <div class="modal-footer">
+          <button id="btn-cancel-block" class="btn-secondary">Cancelar</button>
+          <button id="btn-confirm-block" class="btn-warning">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Delete User Modal -->
+    <div id="delete-user-modal" class="modal-overlay">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <span class="modal-title">Excluir usuário</span>
+          <button id="btn-close-delete-user" class="btn-close-modal">&#x2715;</button>
+        </div>
+        <p id="delete-user-message" class="delete-message"></p>
+        <div class="modal-footer">
+          <button id="btn-cancel-delete-user" class="btn-secondary">Cancelar</button>
+          <button id="btn-confirm-delete-user" class="btn-danger">Excluir</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/services.js"></script>
+    <script src="../scripts/users.js"></script>
+  </body>
+</html>

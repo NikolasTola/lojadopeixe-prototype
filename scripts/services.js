@@ -25,11 +25,12 @@ function createService(data) {
     model: data.model,
     color: data.color,
     imei: data.imei,
-    value: data.value,
+    value: parseFloat(String(data.value).replace(",", ".")),
     date: data.date,
     technicalReport: data.technicalReport,
     observations: data.observations,
     photo: "Imagem Salva",
+    updatedAt: new Date().toISOString().split("T")[0],
   };
   services.push(service);
   saveServices(services);
@@ -46,5 +47,16 @@ function updateService(id, data) {
   const index = services.findIndex((s) => s.id === id);
   if (index === -1) return;
   services[index] = Object.assign(services[index], data);
+  services[index].updatedAt = new Date().toISOString().split("T")[0];
   saveServices(services);
+}
+
+function formatCurrency(value) {
+    return parseFloat(value).toFixed(2).replace(".", ",");
+}
+
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("-");
+  return day + "/" + month + "/" + year;
 }

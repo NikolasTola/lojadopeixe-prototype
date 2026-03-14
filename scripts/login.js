@@ -41,14 +41,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loginValue = loginInput.value.trim();
     const passwordValue = passwordInput.value;
-    const user = authenticate(loginValue, passwordValue);
+    const result = authenticate(loginValue, passwordValue);
 
-    if (!user) {
-      showError("Login ou Senha inválidos. Tente novamente.");
+    if (!result.success) {
+      if (result.reason === "blocked") {
+        showError("Usuário bloqueado. Entre em contato com o administrador.");
+      } else {
+        showError("Login ou senha inválidos.");
+      }
       return;
     }
 
-    createSession(user);
+    createSession(result.user);
+    updateLastLogin(result.user.login);
+
+    if (result.user.mustChangePassword) {
+      window.location.href = "change-password.html";
+      return;
+    }
+
     window.location.href = "dashboard.html";
   });
 

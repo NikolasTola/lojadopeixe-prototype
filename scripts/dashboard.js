@@ -7,10 +7,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("header-username").textContent = session.name;
 
+    if (session.role === "admin") {
+        document.getElementById("header-nav").innerHTML =
+            '<a href="users.html" class="header-link">Usuários</a>';
+    }
+
     const formModal = document.getElementById("form-modal");
     const detailModal = document.getElementById("detail-modal");
     const deleteModal = document.getElementById("delete-modal");
-    const exportModal = document.getElementById("export-modal");
     const cardList = document.getElementById("card-list");
     const errorMessage = document.getElementById("form-error");
 
@@ -34,11 +38,80 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("field-date").value = getTodayFormatted();
         hideFormError();
         formModal.classList.add("active");
+        initFieldMasks()
         setTimeout(initSignatureCanvas, 50);
     }
 
     function closeFormModal() {
         formModal.classList.remove("active");
+    }
+
+    function initFieldMasks() {
+        const nameInput = document.getElementById("field-name");
+        nameInput.addEventListener("input", () => {
+            nameInput.value = nameInput.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s]/g, "");
+        });
+
+        const addressInput = document.getElementById("field-address");
+        addressInput.addEventListener("input", () => {
+            addressInput.value = addressInput.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ0-9\s,]/g, "");
+        });
+
+        const phoneInput = document.getElementById("field-phone");
+        phoneInput.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && phoneInput.value === "(") {
+                phoneInput.value = "";
+            }
+        });
+        phoneInput.addEventListener("input", () => {
+            let digits = phoneInput.value.replace(/\D/g, "").substring(0, 11);
+            if (!digits) { phoneInput.value = ""; return; }
+            let formatted = "(" + digits.substring(0, 2);
+            if (digits.length > 2) formatted += ")" + digits.substring(2, digits.length > 10 ? 7 : 6);
+            if (digits.length > (digits.length > 10 ? 7 : 6)) formatted += "-" + digits.substring(digits.length > 10 ? 7 : 6);
+            phoneInput.value = formatted;
+        });
+        phoneInput.addEventListener("focus", () => {
+            if (!phoneInput.value) phoneInput.value = "(";
+        });
+        phoneInput.addEventListener("blur", () => {
+            if (phoneInput.value === "(") phoneInput.value = "";
+        });
+
+        const cpfInput = document.getElementById("field-cpf");
+        cpfInput.addEventListener("input", () => {
+            let digits = cpfInput.value.replace(/\D/g, "").substring(0, 11);
+            let formatted = digits.substring(0, 3);
+            if (digits.length > 3) formatted += "." + digits.substring(3, 6);
+            if (digits.length > 6) formatted += "." + digits.substring(6, 9);
+            if (digits.length > 9) formatted += "-" + digits.substring(9, 11);
+            cpfInput.value = formatted;
+        });
+
+        const imeiInput = document.getElementById("field-imei");
+        imeiInput.addEventListener("input", () => {
+            let digits = imeiInput.value.replace(/\D/g, "").substring(0, 15);
+            let formatted = digits.substring(0, 6);
+            if (digits.length > 6) formatted += "-" + digits.substring(6, 8);
+            if (digits.length > 8) formatted += "-" + digits.substring(8, 14);
+            if (digits.length > 14) formatted += "-" + digits.substring(14, 15);
+            imeiInput.value = formatted;
+        });
+
+        const valueInput = document.getElementById("field-value");
+        valueInput.addEventListener("input", () => {
+            let raw = valueInput.value.replace(/[^0-9,]/g, "");
+
+            const commaIndex = raw.indexOf(",");
+            if (commaIndex !== -1) {
+                const beforeComma = raw.substring(0, commaIndex);
+                const afterComma = raw.substring(commaIndex + 1).replace(/,/g, "").substring(0, 2);
+                raw = beforeComma + "," + afterComma;
+            }
+
+            if (raw.length > 16) raw = raw.substring(0, 16);
+            valueInput.value = raw;
+        });
     }
 
     function initSignatureCanvas() {
@@ -120,16 +193,13 @@ document.addEventListener("DOMContentLoaded", () => {
     function validateForm() {
         const fields = [
             "field-name",
-            "field-phone",
             "field-address",
             "field-cpf",
             "field-model",
             "field-color",
-            "field-imei",
             "field-value",
             "field-date",
             "field-technical-report",
-            "field-observations",
         ];
 
         for (const id of fields) {
@@ -140,17 +210,52 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        const phone = document.getElementById("field-phone").value.trim();
-        const phoneRegex = /^(\(?\d{2}\)?\s?)(\d{4,5}-?\d{4})$/;
-        if (!phoneRegex.test(phone)) {
-            showFormError("Telefone inválido. Use o formato (XX) XXXXX-XXXX.");
+        const name = document.getElementById("field-name").value.trim();
+        const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/;
+        if (!nameRegex.test(name)) {
+            showFormError("Nome deve conter apenas letras.");
             return false;
         }
 
+        const phone = document.getElementById("field-phone").value.trim();
+        if (phone) {
+            const phoneDigits = phone.replace(/\D/g, "");
+            if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+                showFormError("Telefone inválido. Use o formato (00) 00000-0000.");
+                return false;
+            }
+        }
+
         const cpf = document.getElementById("field-cpf").value.trim();
-        const cpfRegex = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/;
-        if (!cpfRegex.test(cpf)) {
-            showFormError("CPF inválido. Use o formato XXX.XXX.XXX-XX.");
+        if (cpf.replace(/\D/g, "").length !== 11) {
+            showFormError("CPF inválido. Preencha os 11 dígitos.");
+            return false;
+        }
+
+        const imei = document.getElementById("field-imei").value.trim();
+        if (imei) {
+            const imeiDigits = imei.replace(/\D/g, "");
+            if (imeiDigits.length !== 15) {
+                showFormError("IMEI inválido. Preencha os 15 dígitos.");
+                return false;
+            }
+        }
+
+        const value = document.getElementById("field-value").value.trim();
+        const valueRegex = /^\d+([,.]\d{1,2})?$/;
+        if (!valueRegex.test(value)) {
+            showFormError("Valor inválido. Use apenas números e vírgula para centavos.");
+            return false;
+        }
+
+        const photo = document.getElementById("field-photo").files[0];
+        if (!photo) {
+            showFormError("A foto do aparelho é obrigatória.");
+            return false;
+        }
+
+        if (isSignatureEmpty()) {
+            showFormError("A assinatura é obrigatória.");
             return false;
         }
 
@@ -167,6 +272,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return map[status] || "status-stopped";
     }
 
+    function getStatusLabel(status) {
+        const map = {
+            Parado: "Parado",
+            Andamento: "Em andamento",
+            Concluido: "Concluído",
+            Cancelado: "Cancelado",
+        };
+        return map[status] || status;
+    }
+
     function buildCard(service) {
         const card = document.createElement("div");
         card.className = "service-card";
@@ -174,22 +289,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         card.innerHTML =
             '<div class="card-top">' +
-            '<span class="card-id">' + service.id + '</span>' +
-            '<span class="card-status ' + getStatusClass(service.status) + '">' + service.status + '</span>' +
+                '<span class="card-id">' + service.id + '</span>' +
+                '<span class="card-status ' + getStatusClass(service.status) + '">' + getStatusLabel(service.status) + '</span>' +
             '</div>' +
             '<div class="card-top">' +
-            '<span class="card-name">' + service.name + '</span>' +
-            '<span class="card-date">' + formatDateDisplay(service.date) + '</span>' +
+                '<span class="card-name">' + service.name + '</span>' +
             '</div>' +
             '<div class="card-middle">' +
-            '<span class="card-model">' + service.model + ' - ' + service.color + '</span>' +
+                '<span class="card-model">' + service.model + ' - ' + service.color + '</span>' +
             '</div>' +
-            '<div class="card-bottom">' +
-            '<span class="card-value">R$ ' + service.value + '</span>' +
-            '<div class="card-actions">' +
-            '<button class="btn-export-card" data-id="' + service.id + '">Exportar</button>' +
-            (session.role === "admin" ? '<button class="btn-delete-card" data-id="' + service.id + '">Excluir</button>' : '') +
-            '</div>' +
+            '<div class="card-footer">' +
+                '<div class="card-dates">' +
+                    '<span class="card-updated">Criado em: ' + formatDateDisplay(service.date) + '</span>' +
+                    '<span class="card-updated">Atualizado: ' + formatDateDisplay(service.updatedAt) + '</span>' +
+                    '<span class="card-value">R$ ' + formatCurrency(service.value) + '</span>' +
+                '</div>' +
+                '<div class="card-actions">' +
+                    '<button class="btn-export-card" data-id="' + service.id + '">Exportar</button>' +
+                    (session.role === "admin" ? '<button class="btn-delete-card" data-id="' + service.id + '">Excluir</button>' : '') +
+                '</div>' +
             '</div>';
 
         return card;
@@ -244,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detail-model").textContent = service.model;
         document.getElementById("detail-color").textContent = service.color;
         document.getElementById("detail-imei").textContent = service.imei;
-        document.getElementById("detail-value").textContent = "R$ " + service.value;
+        document.getElementById("detail-value").textContent = "R$ " + formatCurrency(service.value);
         document.getElementById("detail-date").textContent = formatDateDisplay(service.date);
         document.getElementById("detail-technical-report").textContent = service.technicalReport;
         document.getElementById("detail-observations").textContent = service.observations;
@@ -293,10 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-cancel-delete").addEventListener("click", closeDeleteModal);
     document.getElementById("btn-confirm-delete").addEventListener("click", confirmDelete);
 
-    document.getElementById("btn-close-export").addEventListener("click", () => exportModal.classList.remove("active"));
-    document.getElementById("btn-cancel-export").addEventListener("click", () => exportModal.classList.remove("active"));
-    document.getElementById("btn-download-pdf").addEventListener("click", downloadPDF);
-
     document.getElementById("field-photo").addEventListener("change", (event) => {
         const file = event.target.files[0];
         const preview = document.getElementById("photo-preview");
@@ -327,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
             model: document.getElementById("field-model").value.trim(),
             color: document.getElementById("field-color").value.trim(),
             imei: document.getElementById("field-imei").value.trim(),
-            value: document.getElementById("field-value").value.trim(),
+            value: parseFloat(document.getElementById("field-value").value.trim().replace(",", ".")),
             date: document.getElementById("field-date").value,
             technicalReport: document.getElementById("field-technical-report").value.trim(),
             observations: document.getElementById("field-observations").value.trim(),
@@ -345,7 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (event.target.closest(".btn-export-card")) {
-            generateServicePDF(event.target.closest(".btn-export-card").dataset.id);
+            exportServicePDF(event.target.closest(".btn-export-card").dataset.id);
             return;
         }
 
